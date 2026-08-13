@@ -114,7 +114,7 @@ All contracts are deployed from the StackingDAO deployer `SP4SZE494VC2YC5JYG7AYF
 
 - **Network:** Stacks mainnet
 - **Deployer:** `SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG`
-- **Contracts:** 63 (this set)
+- **Contracts:** 61 (this set)
 - **External dependency (not StackingDAO):** the sBTC token `SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token`
 
 > Sources here are fetched byte-for-byte from mainnet, so they match the deployed bytecode exactly. The v4 contracts are comment-free (a deploy-time convention); the pre-existing `dao` and token contracts retain the comments they were deployed with. For the intent behind each contract, see [../docs/](../docs/).
