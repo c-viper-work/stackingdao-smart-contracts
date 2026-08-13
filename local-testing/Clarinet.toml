@@ -1,0 +1,321 @@
+[project]
+name = "pox5-harness"
+description = "Self-contained Clarinet harness running the REAL pox-5.clar in simnet"
+authors = []
+telemetry = false
+cache_dir = "./.cache"
+
+# ---------------------------------------------------------------------------
+# Mainnet sBTC contracts pulled as requirements.
+# pox-5.clar hard-references SM3VDXK3...sbtc-token (transfer / get-balance);
+# signer-manager.clar references sbtc-token + sbtc-withdrawal. Listing
+# sbtc-deposit + sbtc-withdrawal pulls sbtc-token + sbtc-registry transitively.
+# The resolved .clar/.json are committed under .cache/requirements/ so the
+# first run works OFFLINE (no Stacks API call needed).
+# ---------------------------------------------------------------------------
+[[project.requirements]]
+contract_id = "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-deposit"
+
+[[project.requirements]]
+contract_id = "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-withdrawal"
+
+[repl]
+costs_version = 1
+
+[contracts.pox-5]
+path = "contracts/vendor/pox-5.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = []
+
+[contracts.test-pox-5-signer]
+path = "contracts/vendor/test-pox-5-signer.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["pox-5"]
+
+# ---------------------------------------------------------------------------
+# StackingDAO v5 contracts
+# ---------------------------------------------------------------------------
+
+# traits + dao (deps)
+[contracts.sip-010-trait-ft-standard]
+path = "contracts/traits/sip-010-trait-ft-standard.clar"
+clarity_version = 6
+epoch = "4.0"
+
+[contracts.sip-09-trait]
+path = "contracts/traits/sip-09-trait.clar"
+clarity_version = 6
+epoch = "4.0"
+
+[contracts.dao]
+path = "contracts/governance/dao.clar"
+clarity_version = 6
+epoch = "4.0"
+
+# stBTC product
+[contracts.stbtc-token]
+path = "contracts/tokens/stbtc-token.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["sip-010-trait-ft-standard", "dao"]
+
+[contracts.stbtc-reserve]
+path = "contracts/products/stbtc-reserve.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+[contracts.stx-reserve]
+path = "contracts/products/stx-reserve.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+# stSTX product (STX side, mirrors the stBTC product over stx-reserve)
+[contracts.ststx-token]
+path = "contracts/tokens/ststx-token.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["sip-010-trait-ft-standard", "dao"]
+
+[contracts.ststx-withdraw-nft-v3]
+path = "contracts/tokens/withdraw-nft-template-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["sip-09-trait", "dao"]
+
+# stSTXbtc product (STX in, sBTC payout via tracker; shares stx-reserve)
+[contracts.ststxbtc-tracking-v1]
+path = "contracts/rewards/reward-tracker-template-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+[contracts.ststxbtc-token]
+path = "contracts/tokens/ststxbtc-token.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["sip-010-trait-ft-standard", "ststxbtc-tracking-v1", "dao"]
+
+[contracts.ststxbtc-withdraw-nft-v2]
+path = "contracts/tokens/withdraw-nft-template-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["sip-09-trait", "dao"]
+
+[contracts.ststxbtc-data-v1]
+path = "contracts/data/withdraw-data-template-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+[contracts.stacking-dao-core-ststxbtc-v1]
+path = "contracts/products/stacking-dao-core-ststxbtc-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["stx-reserve", "ststxbtc-token", "ststxbtc-data-v1", "ststxbtc-withdraw-nft-v2", "dao"]
+
+[contracts.data-stx-v1]
+path = "contracts/data/data-stx-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["stx-reserve", "ststx-token", "ststxbtc-token", "dao"]
+
+[contracts.stacking-dao-core-stx-v1]
+path = "contracts/products/stacking-dao-core-stx-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["data-stx-v1", "withdraw-data-stx", "stx-reserve", "ststx-token", "ststx-withdraw-nft-v3", "dao"]
+
+[contracts.swap-ststx-ststxbtc-v3]
+path = "contracts/products/swap-ststx-ststxbtc-v3.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["stacking-dao-core-stx-v1", "stacking-dao-core-ststxbtc-v1", "ststx-token", "ststxbtc-token", "rewards-stx-v1", "data-stx-v1", "dao"]
+
+# ---------------------------------------------------------------------------
+# v2 stack — derived-earmark reserve upgrade (SWAP-V4-PLAN.md)
+# stx-reserve-v2 derives the stSTXbtc earmark from token supply, making the
+# swap a pure burn/mint, reserve-independent and cap-free. Full parallel stack
+# so the v1 contracts/tests stay intact for comparison.
+# ---------------------------------------------------------------------------
+
+[contracts.stx-reserve-v2]
+path = "contracts/products/stx-reserve-v2.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao", "ststxbtc-token"]
+
+[contracts.rewards-stx-v2]
+path = "contracts/rewards/rewards-stx-v2.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["stx-reserve-v2"]
+
+[contracts.data-stx-v2]
+path = "contracts/data/data-stx-v2.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["stx-reserve-v2", "ststx-token", "ststxbtc-token", "dao"]
+
+[contracts.stacking-dao-core-ststxbtc-v2]
+path = "contracts/products/stacking-dao-core-ststxbtc-v2.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["stx-reserve-v2", "ststxbtc-token", "ststxbtc-data-v1", "ststxbtc-withdraw-nft-v2", "dao"]
+
+[contracts.stacking-dao-core-stx-v2]
+path = "contracts/products/stacking-dao-core-stx-v2.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["data-stx-v2", "withdraw-data-stx", "stx-reserve-v2", "ststx-token", "ststx-withdraw-nft-v3", "rewards-stx-v2", "dao"]
+
+[contracts.swap-ststx-ststxbtc-v4]
+path = "contracts/products/swap-ststx-ststxbtc-v4.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["ststx-token", "ststxbtc-token", "data-stx-v2", "rewards-stx-v2", "dao"]
+
+
+[contracts.stbtc-withdraw-nft]
+path = "contracts/tokens/withdraw-nft-template-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["sip-09-trait", "dao"]
+
+[contracts.data-stbtc-v1]
+path = "contracts/data/data-stbtc-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["stbtc-reserve", "stbtc-token", "dao"]
+
+[contracts.withdraw-data-stbtc]
+path = "contracts/data/withdraw-data-template-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+[contracts.withdraw-data-stx]
+path = "contracts/data/withdraw-data-template-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+[contracts.stacking-dao-core-stbtc-v1]
+path = "contracts/products/stacking-dao-core-stbtc-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["data-stbtc-v1", "withdraw-data-stbtc", "stbtc-reserve", "stbtc-token", "stbtc-withdraw-nft", "dao"]
+
+# staking machinery
+[contracts.signer-admin-v1]
+path = "contracts/staking/signer-admin-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+[contracts.signer-registry-v1]
+path = "contracts/staking/signer-registry-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+[contracts.signer-manager-v1]
+path = "contracts/staking/signer-manager-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["pox-5", "dao", "signer-admin-v1"]
+
+[contracts.stbtc-staker-trait]
+path = "contracts/traits/stbtc-staker-trait.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["pox-5"]
+
+[contracts.stbtc-staker-template-v1]
+path = "contracts/staking/stbtc-staker-template-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["pox-5", "dao", "stbtc-reserve", "stx-reserve", "stbtc-staker-trait"]
+
+[contracts.consensus-staker-trait]
+path = "contracts/traits/consensus-staker-trait.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["pox-5"]
+
+[contracts.stx-staker-template-v1]
+path = "contracts/staking/stx-staker-template-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["pox-5", "dao", "stx-reserve", "consensus-staker-trait"]
+
+[contracts.strategy-v6]
+path = "contracts/staking/strategy-v6.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["pox-5", "stbtc-staker-trait", "consensus-staker-trait"]
+
+[contracts.rewards-pox5-v1]
+path = "contracts/rewards/rewards-pox5-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["stbtc-reserve", "data-pools-stbtc-v1", "commission-sbtc-v1", "ststxbtc-tracking-v1", "dao"]
+
+# commission layer
+[contracts.sdao-token]
+path = "contracts/tokens/sdao-token.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["sip-010-trait-ft-standard", "dao"]
+
+[contracts.sdao-staking-sbtc-v1]
+path = "contracts/rewards/sdao-staking-sbtc-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["sdao-token", "dao"]
+
+[contracts.signer-payout-v1]
+path = "contracts/rewards/signer-payout-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+[contracts.data-pools-stbtc-v1]
+path = "contracts/data/data-pools-stbtc-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["dao"]
+
+[contracts.commission-sbtc-v1]
+path = "contracts/rewards/commission-sbtc-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["sdao-staking-sbtc-v1", "signer-payout-v1", "dao"]
+
+[contracts.rewards-stx-v1]
+path = "contracts/rewards/rewards-stx-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["stx-reserve"]
+
+[contracts.reward-split-calculator-v1]
+path = "contracts/rewards/reward-split-calculator-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["rewards-pox5-v1", "dao"]
+
+# native pool (non-custodial STX staking, sBTC payout)
+[contracts.native-pool-v1]
+path = "contracts/products/native-pool-v1.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["pox-5", "dao"]
+
+[contracts.native-pool-signer-manager]
+path = "contracts/staking/native-pool-signer-manager.clar"
+clarity_version = 6
+epoch = "4.0"
+depends_on = ["pox-5", "dao", "native-pool-v1", "signer-admin-v1"]

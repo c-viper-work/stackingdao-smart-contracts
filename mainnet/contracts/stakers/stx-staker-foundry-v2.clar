@@ -1,0 +1,76 @@
+(impl-trait .consensus-staker-trait.consensus-staker-trait)
+(use-trait signer-manager-trait 'SP000000000000000000002Q6VF78.pox-5.signer-manager-trait)
+
+(define-data-var staked-amount uint u0)
+
+(define-public (stake-stx
+    (signer-manager <signer-manager-trait>)
+    (amount-ustx uint)
+    (ststxbtc-amount uint)
+    (num-cycles uint)
+    (signer-calldata (optional (buff 500)))
+  )
+  (let ((total-amount (+ amount-ustx ststxbtc-amount)))
+    (try! (contract-call? .dao check-is-protocol contract-caller))
+    (try! (contract-call? .stx-reserve-v2 request-stx-for-staking amount-ustx ststxbtc-amount))
+    (try! (as-contract?
+      ((with-staking total-amount))
+      (try! (contract-call? 'SP000000000000000000002Q6VF78.pox-5 stake signer-manager total-amount num-cycles burn-block-height signer-calldata))
+    ))
+    (var-set staked-amount total-amount)
+    (print { action: "stake-stx", data: { signer-manager: (contract-of signer-manager), amount-ustx: amount-ustx, ststxbtc-amount: ststxbtc-amount, total-amount: total-amount, num-cycles: num-cycles, block-height: stacks-block-height } })
+    (ok true)
+  )
+)
+
+(define-public (stake-update-stx
+    (signer-manager <signer-manager-trait>)
+    (old-signer-manager <signer-manager-trait>)
+    (cycles-to-extend uint)
+    (amount-increase uint)
+    (ststxbtc-increase uint)
+    (signer-calldata (optional (buff 500)))
+  )
+  (let (
+    (total-increase (+ amount-increase ststxbtc-increase))
+    (new-total (+ (var-get staked-amount) total-increase))
+  )
+    (try! (contract-call? .dao check-is-protocol contract-caller))
+    (if (> total-increase u0)
+      (try! (contract-call? .stx-reserve-v2 request-stx-for-staking amount-increase ststxbtc-increase))
+      u0
+    )
+    (try! (as-contract?
+      ((with-staking new-total))
+      (try! (contract-call? 'SP000000000000000000002Q6VF78.pox-5 stake-update signer-manager old-signer-manager cycles-to-extend total-increase signer-calldata))
+    ))
+    (var-set staked-amount new-total)
+    (print { action: "stake-update-stx", data: { signer-manager: (contract-of signer-manager), old-signer-manager: (contract-of old-signer-manager), cycles-to-extend: cycles-to-extend, amount-increase: amount-increase, ststxbtc-increase: ststxbtc-increase, new-total: new-total, block-height: stacks-block-height } })
+    (ok true)
+  )
+)
+
+(define-public (unstake-stx (old-signer-manager <signer-manager-trait>))
+  (begin
+    (try! (contract-call? .dao check-is-protocol contract-caller))
+
+    (try! (as-contract? ((with-pox))
+      (try! (contract-call? 'SP000000000000000000002Q6VF78.pox-5 unstake old-signer-manager))
+    ))
+    (print { action: "unstake-stx", data: { old-signer-manager: (contract-of old-signer-manager), block-height: stacks-block-height } })
+    (ok true)
+  )
+)
+
+(define-public (return-stx (ststx-amount uint) (ststxbtc-amount uint))
+  (let ((total-amount (+ ststx-amount ststxbtc-amount)))
+    (try! (contract-call? .dao check-is-protocol contract-caller))
+    (var-set staked-amount u0)
+    (try! (as-contract?
+      ((with-stx total-amount))
+      (try! (contract-call? .stx-reserve-v2 return-stx-from-staking-split ststx-amount ststxbtc-amount))
+    ))
+    (print { action: "return-stx", data: { ststx-amount: ststx-amount, ststxbtc-amount: ststxbtc-amount, total-amount: total-amount, block-height: stacks-block-height } })
+    (ok true)
+  )
+)

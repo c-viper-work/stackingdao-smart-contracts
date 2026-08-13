@@ -1,0 +1,31 @@
+{
+  "name": "pox5-harness",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "description": "",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "SUPPRESS_CLARINET_LOGS=1 vitest",
+    "clarigen": "clarigen"
+  },
+  "devDependencies": {
+    "@clarigen/cli": "4.1.7",
+    "@clarigen/core": "4.1.7",
+    "@clarigen/test": "4.1.7",
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.0.1",
+    "@scure/base": "2.2.0",
+    "@scure/btc-signer": "2.0.1",
+    "@stacks/clarinet-sdk": "3.21.1",
+    "@stacks/transactions": "7.4.0",
+    "dnum": "2.17.0",
+    "fast-check": "3.23.2",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.1",
+    "vitest": "4.0.13",
+    "vitest-environment-clarinet": "3.0.2"
+  }
+}

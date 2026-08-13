@@ -1,0 +1,11 @@
+node_modules/
+.cache/
+.DS_Store
+coverage/
+*.info
+costs-reports.json
+package-lock.json
+yarn.lock
+**/settings/Mainnet.toml
+**/settings/Testnet.toml
+local-testing/docs/clarigen/
